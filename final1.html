@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EcoWaste Portal</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:Arial, sans-serif}
+    body{background:linear-gradient(to bottom,#77f277,#69bfed);min-height:100vh}
+    header{display:flex;justify-content:space-between;align-items:center;padding:10px 28px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{height:44px}
+    .brand h1{font-size:20px;color:#2e7d32}
+    .controls{display:flex;gap:12px;align-items:center}
+    .login-btn,.logout-btn{padding:8px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer}
+    .lang-select{padding:6px;border-radius:6px}
+    .section{display:none;padding:18px;max-width:1100px;margin:20px auto}
+    .section.active{display:block}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:10px}
+    .gallery img{width:100%;height:200px;object-fit:cover;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+    textarea,input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #cfcfcf;border-radius:8px}
+    button{padding:10px;border-radius:8px;border:none;cursor:pointer}
+    .btn-main{background:#2e7d32;color:#fff}
+    .btn-green{background:#4caf50;color:#fff}
+    .btn-red{background:#f36464;color:#fff}
+    footer{background:#0a6666;color:#fff;padding:12px 18px;position:fixed;left:0;right:0;bottom:0;text-align:center;font-weight:600}
+
+    /* Popup styling */
+    .popup{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      justify-content:center;
+      align-items:center;
+      opacity:0;
+      transition:opacity 0.3s ease-in-out;
+    }
+    .popup.show{ 
+      display:flex;
+      opacity:1;
+    }
+
+    .card{background:#fff;padding:18px;border-radius:14px;width:320px;max-width:90%;position:relative;box-shadow:0 6px 30px rgba(0,0,0,0.15);animation:fadeIn 0.3s ease}
+    @keyframes fadeIn{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+    .close-btn{position:absolute;right:12px;top:8px;font-size:20px;cursor:pointer;color:#333}
+    h2{margin-bottom:10px}
+    p.small{font-size:13px;color:#333;margin:6px 0}
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <img src="https://cdn-icons-png.flaticon.com/512/1345/1345823.png" alt="Eco Logo">
+      <h1 id="siteName">EcoWaste Portal</h1>
+    </div>
+    <div class="controls">
+      <button class="login-btn" id="headerLoginBtn" onclick="openPopup()">Login</button>
+      <button class="logout-btn" id="headerLogoutBtn" style="display:none" onclick="logout()">Logout</button>
+      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="te">తెలుగు</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Home -->
+  <section id="home" class="section active">
+    <h2 id="welcomeText" style="text-align:center">Welcome to EcoWaste Portal</h2>
+    <p id="awarenessText" style="text-align:center;margin-bottom:12px">
+      Proper waste segregation helps keep our environment clean. Use green bins for biodegradable waste and red bins for non-biodegradable waste.
+    </p>
+    <div class="gallery">
+      <img src="https://source.unsplash.com/600x400/?waste,recycle" alt="">
+      <img src="https://source.unsplash.com/600x400/?garbage,clean" alt="">
+      <img src="https://source.unsplash.com/600x400/?trash,environment" alt="">
+      <img src="https://source.unsplash.com/600x400/?plastic,recycling" alt="">
+    </div>
+  </section>
+
+  <!-- Owner Dashboard -->
+  <section id="ownerDashboard" class="section">
+    <h2 id="ownerDashTitle" style="text-align:center">Owner Dashboard</h2>
+    <h3 id="qrLabel">Your QR Code:</h3>
+    <div id="qrcode" style="margin-bottom:12px"></div>
+    <h3 id="detailsTitle">Owner Details</h3>
+    <p><strong id="nameLabel">Name:</strong> <span id="ownerName"></span></p>
+    <p><strong id="addressLabel">Address:</strong> <span id="ownerAddress"></span></p>
+    <h3><span id="creditsLabelText">Your Credits</span>: <span id="ownerCredits">0</span></h3>
+    <div id="fineSection" style="display:none;margin:8px 0">
+      <p id="fineLabel" style="color:red;font-weight:700">⚠ You have pending fines!</p>
+      <button class="btn-red" id="payFineBtn" onclick="payFine()">Pay Fine</button>
+      <p id="fineMsg" class="small"></p>
+    </div>
+    <h3 id="redeemLabel">Redeem Credits</h3>
+    <button class="btn-main" id="redeemBtn" onclick="redeemCredits()">Redeem Now</button>
+    <p id="redeemMsg" class="small" style="color:green"></p>
+    <h3 id="complaintLabel">Report Complaint</h3>
+    <textarea id="complaintText" rows="4" placeholder="Write your complaint here..."></textarea>
+    <button class="btn-main" id="reportBtn" onclick="submitComplaint()">Submit Complaint</button>
+    <p id="reportMsg" class="small"></p>
+    <h3 id="historyLabel">Waste Collection History</h3>
+    <ul id="wasteHistory"></ul>
+  </section>
+
+  <!-- Collector Dashboard -->
+  <section id="collectorDashboard" class="section">
+    <h2 id="collectorDashTitle" style="text-align:center">Collector Dashboard</h2>
+    <input id="ownerIdInput" placeholder="Enter Owner UID" />
+    <button class="btn-main" id="loadOwnerBtn" onclick="loadOwnerForCollector()">Load Owner Details</button>
+    <div id="collectorOwnerDetails" style="margin-top:15px; display:none;">
+      <h3 id="cDetailsTitle">Owner Information</h3>
+      <p><strong id="cNameLabel">Name:</strong> <span id="cOwnerName"></span></p>
+      <p><strong id="cAddressLabel">Address:</strong> <span id="cOwnerAddress"></span></p>
+      <p><strong id="cCreditsLabel">Credits:</strong> <span id="cOwnerCredits"></span></p>
+      <h3 id="cHistoryLabel">Waste History</h3>
+      <ul id="cOwnerHistory"></ul>
+      <h3 id="cActionsTitle">Actions</h3>
+      <button class="btn-green" id="greenBtn" onclick="giveGreenCredits()">✔ Green Waste (Add Credits)</button>
+      <button class="btn-red" id="redBtn" onclick="markRedWaste()">❌ Red Waste (Fine)</button>
+      <p id="collectorMsg" class="small"></p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="footerText">Join us to make the environment cleaner. Reduce, Reuse, Recycle!</footer>
+
+  <!-- Login/Register Popup -->
+  <div class="popup" id="authPopup">
+    <div class="card">
+      <span class="close-btn" onclick="closeAuthPopup()">&times;</span>
+      <div id="loginCard">
+        <h2 id="loginTitle">Login</h2>
+        <input id="loginPhone" placeholder="Aadhar Number" />
+        <input id="loginPassword" placeholder="Password" type="password" />
+        <button class="btn-main" id="loginModalBtn" onclick="login()">Login</button>
+        <p id="loginMsg" class="small" style="color:red"></p>
+        <p class="small">Don't have an account? <a onclick="showRegister()">Register here</a></p>
+      </div>
+      <div id="registerCard" style="display:none">
+        <h2 id="registerTitle">Register</h2>
+        <input id="regName" placeholder="Full Name" />
+        <input id="regAddress" placeholder="House Address" />
+        <input id="regPhone" placeholder="Aadhar Number" />
+        <input id="regPassword" placeholder="Password" type="password" />
+        <select id="regRole">
+          <option value="">-- choose role --</option>
+          <option value="owner">Household Owner</option>
+          <option value="collector">Collector</option>
+        </select>
+        <button class="btn-main" id="registerModalBtn" onclick="register()">Register</button>
+        <p id="regMsg" class="small"></p>
+        <p class="small">Already have an account? <a onclick="showLogin()">Back to Login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fine Payment Popup -->
+  <div class="popup" id="finePopup">
+    <div class="card">
+      <span class="close-btn" onclick="closeFinePopup()">&times;</span>
+      <h2 id="payPopupTitle">Pay Fine</h2>
+      <p class="small" id="chooseMethodLabel">Choose a payment method:</p>
+      <select id="paymentMethod">
+        <option value="upi">UPI</option>
+        <option value="card">Credit/Debit Card</option>
+        <option value="netbanking">Net Banking</option>
+      </select>
+      <input id="paymentDetails" placeholder="Enter payment details (demo)" />
+      <button class="btn-main" id="confirmPayBtn" onclick="confirmFinePayment()">Pay Now</button>
+      <p id="finePayMsg" class="small" style="color:green"></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    /* === Same JavaScript logic as before === */
+
+    /* --- Language Dictionary --- */
+    const translations={en:{siteName:"EcoWaste Portal",welcome:"Welcome to EcoWaste Portal",awareness:"Proper waste segregation helps keep our environment clean. Use green bins for biodegradable waste and red bins for non-biodegradable waste.",ownerDashboard:"Owner Dashboard",qr:"Your QR Code:",details:"Owner Details",name:"Name:",address:"Address:",credits:"Your Credits",fine:"⚠ You have pending fines!",payFine:"Pay Fine",redeem:"Redeem Credits",redeemBtn:"Redeem Now",complaint:"Report Complaint",reportBtn:"Submit Complaint",history:"Waste Collection History",collectorDashboard:"Collector Dashboard",loadOwner:"Load Owner Details",cDetails:"Owner Information",cName:"Name:",cAddress:"Address:",cCredits:"Credits:",cHistory:"Waste History",cActions:"Actions",greenBtn:"✔ Green Waste (Add Credits)",redBtn:"❌ Red Waste (Fine)",footer:"Join us to make the environment cleaner. Reduce, Reuse, Recycle!"},te:{siteName:"ఎకోవెస్ట్ పోర్టల్",welcome:"ఎకోవెస్ట్ పోర్టల్‌కి స్వాగతం",awareness:"సరైన వ్యర్థాల వర్గీకరణ పర్యావరణాన్ని శుభ్రంగా ఉంచుతుంది. బయోడిగ్రేడబుల్ వ్యర్థాల కోసం పచ్చ బిన్, నాన్-బియోడిగ్రేడబుల్ వ్యర్థాల కోసం ఎరుపు బిన్ వాడండి.",ownerDashboard:"ఇలవేల్పరి డాష్‌బోర్డ్",qr:"మీ QR కోడ్:",details:"యజమాని వివరాలు",name:"పేరు:",address:"చిరునామా:",credits:"మీ క్రెడిట్స్",fine:"⚠ మీ వద్ద పెండింగ్ జరిమానా ఉంది!",payFine:"జరిమానా చెల్లించండి",redeem:"క్రెడిట్స్ రిడీమ్ చేయండి",redeemBtn:"రిడీమ్ చేయండి",complaint:"ఫిర్యాదు నమోదు చేయండి",reportBtn:"ఫిర్యాదు సమర్పించండి",history:"వ్యర్థాల సేకరణ చరిత్ర",collectorDashboard:"సేకరించేవారి డాష్‌బోర్డ్",loadOwner:"యజమాని వివరాలు లోడ్ చేయండి",cDetails:"యజమాని సమాచారం",cName:"పేరు:",cAddress:"చిరునామా:",cCredits:"క్రెడిట్స్:",cHistory:"చరిత్ర",cActions:"చర్యలు",greenBtn:"✔ గ్రీన్ వ్యర్థం (క్రెడిట్స్ జోడించండి)",redBtn:"❌ రెడ్ వ్యర్థం (జరిమానా)",footer:"పర్యావరణాన్ని శుభ్రంగా ఉంచడానికి మాతో చేరండి. తగ్గించండి, మళ్ళీ వాడండి, రీసైకిల్ చేయండి!"}};
+    function changeLanguage(lang){localStorage.setItem('ew_lang',lang);const t=translations[lang];document.getElementById("siteName").innerText=t.siteName;document.getElementById("welcomeText").innerText=t.welcome;document.getElementById("awarenessText").innerText=t.awareness;document.getElementById("ownerDashTitle").innerText=t.ownerDashboard;document.getElementById("qrLabel").innerText=t.qr;document.getElementById("detailsTitle").innerText=t.details;document.getElementById("nameLabel").innerText=t.name;document.getElementById("addressLabel").innerText=t.address;document.getElementById("creditsLabelText").innerText=t.credits;document.getElementById("fineLabel").innerText=t.fine;document.getElementById("payFineBtn").innerText=t.payFine;document.getElementById("redeemLabel").innerText=t.redeem;document.getElementById("redeemBtn").innerText=t.redeemBtn;document.getElementById("complaintLabel").innerText=t.complaint;document.getElementById("reportBtn").innerText=t.reportBtn;document.getElementById("historyLabel").innerText=t.history;document.getElementById("collectorDashTitle").innerText=t.collectorDashboard;document.getElementById("loadOwnerBtn").innerText=t.loadOwner;document.getElementById("cDetailsTitle").innerText=t.cDetails;document.getElementById("cNameLabel").innerText=t.cName;document.getElementById("cAddressLabel").innerText=t.cAddress;document.getElementById("cCreditsLabel").innerText=t.cCredits;document.getElementById("cHistoryLabel").innerText=t.cHistory;document.getElementById("cActionsTitle").innerText=t.cActions;document.getElementById("greenBtn").innerText=t.greenBtn;document.getElementById("redBtn").innerText=t.redBtn;document.getElementById("footerText").innerText=t.footer;}
+
+    /* --- Storage Helpers --- */
+    function loadUsers(){return JSON.parse(localStorage.getItem('ew_users')||'[]');}
+    function saveUsers(u){localStorage.setItem('ew_users',JSON.stringify(u));}
+    function loadCurrentUser(){return JSON.parse(localStorage.getItem('ew_currentUser')||'null');}
+    function saveCurrentUser(u){if(u)localStorage.setItem('ew_currentUser',JSON.stringify(u));else localStorage.removeItem('ew_currentUser');}
+    let users=loadUsers();let currentUser=loadCurrentUser();
+
+    function generateUniqueId(){return 'UID-'+Date.now()+'-'+Math.floor(Math.random()*900+100);}
+
+    /* --- Auth Popups --- */
+    function openPopup(){let el=document.getElementById('authPopup');el.classList.add("show");showLogin();}
+    function closeAuthPopup(){let el=document.getElementById('authPopup');el.classList.remove("show");}
+    function showRegister(){document.getElementById('loginCard').style.display='none';document.getElementById('registerCard').style.display='block';}
+    function showLogin(){document.getElementById('registerCard').style.display='none';document.getElementById('loginCard').style.display='block';}
+
+    /* --- Register/Login --- */
+    function register(){const name=document.getElementById('regName').value.trim();const address=document.getElementById('regAddress').value.trim();const phone=document.getElementById('regPhone').value.trim();const password=document.getElementById('regPassword').value;const role=document.getElementById('regRole').value;if(!name||!phone||!password||!role||(role==='owner'&&!address)){document.getElementById('regMsg').style.color='red';document.getElementById('regMsg').innerText='Fill all fields';return;}if(users.some(u=>u.phone===phone)){document.getElementById('regMsg').style.color='red';document.getElementById('regMsg').innerText='User already exists';return;}const uid=(role==='owner')?generateUniqueId():null;const newUser={name,phone,password,role,uid,address:address||'',credits:0,complaints:[],history:[]};users.push(newUser);saveUsers(users);document.getElementById('regMsg').style.color='green';document.getElementById('regMsg').innerText='Registered successfully! Please login.';}
+    function login(){const phone=document.getElementById('loginPhone').value.trim();const password=document.getElementById('loginPassword').value;const user=users.find(u=>u.phone===phone&&u.password===password);if(!user){document.getElementById('loginMsg').innerText='Invalid login';return;}currentUser=user;saveCurrentUser(user);closeAuthPopup();loadDashboard();}
+    function logout(){currentUser=null;saveCurrentUser(null);document.getElementById('headerLoginBtn').style.display='inline-block';document.getElementById('headerLogoutBtn').style.display='none';showSection('home');}
+    function showSection(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+    /* --- Owner Dashboard --- */
+    function loadDashboard(){document.getElementById('headerLoginBtn').style.display='none';document.getElementById('headerLogoutBtn').style.display='inline-block';if(currentUser.role==='owner'){showSection('ownerDashboard');document.getElementById('ownerCredits').innerText=currentUser.credits;document.getElementById('ownerName').innerText=currentUser.name;document.getElementById('ownerAddress').innerText=currentUser.address||"-";document.getElementById('qrcode').innerHTML="";new QRCode(document.getElementById('qrcode'),currentUser.uid||"");renderHistory(currentUser.history||[]);document.getElementById('fineSection').style.display=currentUser.credits<0?'block':'none';}else{showSection('collectorDashboard');}}
+
+    function submitComplaint(){const txt=document.getElementById('complaintText').value.trim();if(!txt){document.getElementById('reportMsg').innerText='Please enter a complaint.';return;}currentUser.complaints.push({text:txt,date:new Date().toLocaleString()});users=users.map(u=>u.phone===currentUser.phone?currentUser:u);saveUsers(users);saveCurrentUser(currentUser);document.getElementById('reportMsg').innerText='Complaint submitted successfully!';document.getElementById('complaintText').value="";}
+    function redeemCredits(){if(currentUser.credits>=10){currentUser.credits-=10;document.getElementById('redeemMsg').innerText='Redeemed 10 credits successfully!';}else{document.getElementById('redeemMsg').innerText='Not enough credits to redeem!';}document.getElementById('ownerCredits').innerText=currentUser.credits;users=users.map(u=>u.phone===currentUser.phone?currentUser:u);saveUsers(users);saveCurrentUser(currentUser);}
+    function renderHistory(history){const list=document.getElementById('wasteHistory');list.innerHTML="";if(!history||history.length===0){list.innerHTML="<li>No history available</li>";return;}history.slice().reverse().forEach(h=>{const li=document.createElement('li');li.innerText=`${h.type} - ${h.date}`;list.appendChild(li);});}
+
+    /* --- Collector --- */
+    function loadOwnerForCollector(){const uid=document.getElementById('ownerIdInput').value.trim();const owner=users.find(u=>u.uid===uid&&u.role==='owner');const div=document.getElementById('collectorOwnerDetails');if(!owner){div.style.display='none';document.getElementById('collectorMsg').innerText='Owner not found';return;}div.style.display='block';document.getElementById('cOwnerName').innerText=owner.name;document.getElementById('cOwnerAddress').innerText=owner.address||"-";document.getElementById('cOwnerCredits').innerText=owner.credits;const list=document.getElementById('cOwnerHistory');list.innerHTML="";if(!owner.history||owner.history.length===0){list.innerHTML="<li>No history available</li>";}else{owner.history.slice().reverse().forEach(h=>{const li=document.createElement('li');li.innerText=`${h.type} - ${h.date}`;list.appendChild(li);});}}
+    function giveGreenCredits(){const uid=document.getElementById('ownerIdInput').value.trim();const owner=users.find(u=>u.uid===uid&&u.role==='owner');if(!owner){document.getElementById('collectorMsg').innerText='Owner not found';return;}owner.credits+=5;owner.history.push({type:"Green Waste",date:new Date().toLocaleString()});users=users.map(u=>u.phone===owner.phone?owner:u);saveUsers(users);document.getElementById('collectorMsg').innerText='5 Credits added for Green Waste!';loadOwnerForCollector();if(currentUser&&currentUser.uid===owner.uid){currentUser=owner;saveCurrentUser(owner);document.getElementById('ownerCredits').innerText=owner.credits;renderHistory(owner.history);}}
+    function markRedWaste(){const uid=document.getElementById('ownerIdInput').value.trim();const owner=users.find(u=>u.uid===uid&&u.role==='owner');if(!owner){document.getElementById('collectorMsg').innerText='Owner not found';return;}owner.credits-=3;owner.history.push({type:"Red Waste",date:new Date().toLocaleString()});users=users.map(u=>u.phone===owner.phone?owner:u);saveUsers(users);document.getElementById('collectorMsg').innerText='Red Waste detected - 3 Credits fined!';loadOwnerForCollector();if(currentUser&&currentUser.uid===owner.uid){currentUser=owner;saveCurrentUser(owner);document.getElementById('ownerCredits').innerText=owner.credits;renderHistory(owner.history);document.getElementById('fineSection').style.display=owner.credits<0?'block':'none';}}
+
+    /* --- Fine Payment --- */
+    function payFine(){document.getElementById('finePopup').classList.add("show");}
+    function closeFinePopup(){document.getElementById('finePopup').classList.remove("show");}
+    function confirmFinePayment(){currentUser.credits=0;users=users.map(u=>u.phone===currentUser.phone?currentUser:u);saveUsers(users);saveCurrentUser(currentUser);document.getElementById('ownerCredits').innerText=0;document.getElementById('fineSection').style.display='none';document.getElementById('finePayMsg').innerText='Fine paid successfully!';setTimeout(()=>{closeFinePopup();document.getElementById('finePayMsg').innerText='';},1500);}
+
+    /* --- Init --- */
+    window.addEventListener('load',()=>{document.getElementById("authPopup").classList.remove("show");document.getElementById("finePopup").classList.remove("show");const savedLang=localStorage.getItem('ew_lang')||'en';document.getElementById("langSelect").value=savedLang;changeLanguage(savedLang);if(currentUser) loadDashboard();});
+  </script>
+</body>
+</html>
